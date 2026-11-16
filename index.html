@@ -1,0 +1,2234 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>みんなの せいとかい せんきょ</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+    background: #f0f4f8;
+    color: #1a202c;
+    line-height: 1.6;
+    padding-bottom: 60px;
+    user-select: none;
+  }
+
+  /* 紙吹雪用キャンバス */
+  #confettiCanvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 10000;
+  }
+
+  /* ヘッダー */
+  header {
+    background: #0f172a;
+    color: white;
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  }
+  .title-group h1 {
+    font-size: 26px;
+    font-weight: 800;
+    color: #facc15;
+    letter-spacing: 1px;
+  }
+  .title-sub {
+    font-size: 14px;
+    color: #94a3b8;
+  }
+
+  /* ナビゲーションタブ */
+  .nav-tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .tab-btn {
+    background: #1e293b;
+    border: 2px solid #475569;
+    color: #e2e8f0;
+    font-size: 16px;
+    font-weight: 700;
+    padding: 10px 18px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: 0.15s;
+  }
+  .tab-btn:hover { background: #334155; }
+  .tab-btn.active {
+    background: #0284c7;
+    border-color: #38bdf8;
+    color: white;
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+  }
+  .tab-btn.admin-tab {
+    background: #334155;
+    border-color: #64748b;
+    font-size: 14px;
+  }
+  .tab-btn.admin-tab.active {
+    background: #7c3aed;
+    border-color: #a78bfa;
+    box-shadow: 0 0 12px rgba(167, 139, 250, 0.4);
+  }
+
+  /* メインエリア */
+  main {
+    max-width: 1100px;
+    margin: 20px auto;
+    padding: 0 16px;
+  }
+
+  .view-section { display: none; }
+  .view-section.active { display: block; }
+
+  /* 共通カード */
+  .card {
+    background: white;
+    border-radius: 18px;
+    padding: 24px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+    border: 3px solid #e2e8f0;
+    margin-bottom: 20px;
+  }
+
+  /* 役職フィルターボタン */
+  .filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+    padding: 10px 14px;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 2px solid #e2e8f0;
+  }
+  .filter-label {
+    font-size: 14px;
+    font-weight: 800;
+    color: #475569;
+    margin-right: 4px;
+  }
+  .filter-btn {
+    background: white;
+    border: 2px solid #cbd5e1;
+    color: #334155;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: 0.15s;
+  }
+  .filter-btn:hover { background: #e2e8f0; }
+  .filter-btn.active {
+    background: #0284c7;
+    border-color: #0284c7;
+    color: white;
+  }
+
+  /* =========================================
+     1. こうほしゃ しょうかい (横長レイアウト)
+     ========================================= */
+  .candidate-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 18px;
+  }
+  .candidate-card {
+    background: #ffffff;
+    border-radius: 18px;
+    border: 4px solid #cbd5e1;
+    padding: 16px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+    position: relative;
+    transition: transform 0.15s, border-color 0.15s;
+  }
+  .candidate-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  }
+
+  .candidate-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 130px;
+    flex-shrink: 0;
+  }
+
+  .candidate-right {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    height: 100%;
+  }
+
+  .candidate-photo-frame {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    margin-bottom: 8px;
+    background: #f8fafc;
+    border: 4px solid currentColor;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    flex-shrink: 0;
+  }
+  .candidate-photo-frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .candidate-photo-frame .fallback-symbol {
+    font-size: 44px;
+    line-height: 1;
+  }
+
+  .candidate-class {
+    font-size: 13px;
+    font-weight: 800;
+    color: #475569;
+    margin-bottom: 2px;
+  }
+
+  .candidate-name {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 6px;
+    color: #0f172a;
+    line-height: 1.2;
+    text-align: center;
+  }
+  .candidate-tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    color: white;
+  }
+  .manifesto-box {
+    background: #f8fafc;
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 12px;
+    width: 100%;
+    font-size: 14px;
+    font-weight: 700;
+    color: #334155;
+    margin-bottom: 12px;
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+  }
+  .btn-speech {
+    width: 100%;
+    background: #facc15;
+    border: 3px solid #eab308;
+    color: #713f12;
+    font-size: 15px;
+    font-weight: 800;
+    padding: 8px;
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: 0.1s;
+  }
+  .btn-speech:hover { background: #fde047; }
+  .btn-speech:active { transform: scale(0.97); }
+
+  /* =========================================
+     2. とうひょう れんしゅう (模擬投票)
+     ========================================= */
+  .switch-guide-bar {
+    background: #ecfdf5;
+    border: 2px solid #10b981;
+    border-radius: 14px;
+    padding: 12px 18px;
+    margin-bottom: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .switch-guide-text {
+    font-size: 15px;
+    font-weight: 700;
+    color: #065f46;
+  }
+  .btn-toggle-scan {
+    background: #10b981;
+    border: none;
+    color: white;
+    font-weight: 800;
+    font-size: 14px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .btn-toggle-scan.active {
+    background: #dc2626;
+  }
+
+  .vote-steps-bar {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .vote-step-indicator {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 800;
+    background: #e2e8f0;
+    color: #64748b;
+  }
+  .vote-step-indicator.active {
+    background: #0284c7;
+    color: white;
+  }
+  .vote-step-indicator.done {
+    background: #10b981;
+    color: white;
+  }
+
+  .vote-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .vote-card {
+    background: white;
+    border: 4px solid #cbd5e1;
+    border-radius: 16px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.15s;
+  }
+  .vote-card:hover {
+    border-color: #38bdf8;
+    background: #f0f9ff;
+  }
+  .vote-photo-frame {
+    width: 75px;
+    height: 75px;
+    border-radius: 50%;
+    margin-bottom: 8px;
+    background: #f8fafc;
+    border: 3px solid currentColor;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .vote-photo-frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .vote-photo-frame .fallback-symbol {
+    font-size: 40px;
+    line-height: 1;
+  }
+
+  .vote-card.scanning-focus {
+    border-color: #ef4444 !important;
+    background: #fef2f2 !important;
+    box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.4);
+    transform: scale(1.04);
+  }
+  .vote-card.selected {
+    border-color: #0284c7;
+    background: #e0f2fe;
+    box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.3);
+  }
+
+  .vote-action-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: #f8fafc;
+    border-radius: 20px;
+    border: 3px dashed #cbd5e1;
+  }
+  .btn-next-step {
+    background: #0284c7;
+    border: 4px solid #0369a1;
+    color: white;
+    font-size: 22px;
+    font-weight: 900;
+    padding: 14px 40px;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 0 6px 16px rgba(2, 132, 199, 0.4);
+    transition: 0.15s;
+  }
+  .btn-next-step:hover { background: #0369a1; }
+  .btn-next-step:disabled {
+    background: #94a3b8;
+    border-color: #64748b;
+    box-shadow: none;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  /* =========================================
+     3. とうひょうの ながれ (ギミック搭載ガイド)
+     ========================================= */
+  .guide-header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .guide-controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .btn-guide-audio {
+    background: #facc15;
+    border: 3px solid #eab308;
+    color: #713f12;
+    font-size: 16px;
+    font-weight: 800;
+    padding: 10px 18px;
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 3px 8px rgba(234, 179, 8, 0.3);
+    transition: 0.15s;
+  }
+  .btn-guide-audio:hover { background: #fde047; transform: translateY(-2px); }
+  .btn-guide-audio.playing {
+    background: #ef4444;
+    border-color: #dc2626;
+    color: white;
+  }
+
+  .btn-guide-mode {
+    background: #e2e8f0;
+    border: 2px solid #94a3b8;
+    color: #334155;
+    font-size: 14px;
+    font-weight: 800;
+    padding: 10px 16px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: 0.15s;
+  }
+  .btn-guide-mode:hover { background: #cbd5e1; }
+
+  @keyframes popInCard {
+    0% { opacity: 0; transform: translateY(20px) scale(0.95); }
+    70% { transform: translateY(-4px) scale(1.01); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  @keyframes iconWiggleBounce {
+    0%, 100% { transform: translateY(0) rotate(0deg) scale(1); }
+    25% { transform: translateY(-8px) rotate(-10deg) scale(1.15); }
+    50% { transform: translateY(-4px) rotate(10deg) scale(1.15); }
+    75% { transform: translateY(-6px) rotate(-5deg) scale(1.1); }
+  }
+
+  .flow-step-card {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: #ffffff;
+    border: 3px solid #cbd5e1;
+    border-radius: 16px;
+    padding: 18px 24px;
+    margin-bottom: 16px;
+    transition: all 0.25s ease;
+    position: relative;
+  }
+  .flow-step-card.hidden-step { display: none; }
+  .flow-step-card.visible-step {
+    display: flex;
+    animation: popInCard 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+  .flow-step-card:hover {
+    border-color: #38bdf8;
+    background: #f0f9ff;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(2, 132, 199, 0.12);
+  }
+  .flow-step-card:hover .step-icon,
+  .flow-step-card.speaking-highlight .step-icon {
+    animation: iconWiggleBounce 0.7s ease-in-out infinite;
+  }
+
+  .flow-step-card.speaking-highlight {
+    border-color: #f59e0b !important;
+    background: #fef3c7 !important;
+    box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.35);
+    transform: scale(1.02);
+  }
+
+  .step-num {
+    background: #0284c7;
+    color: white;
+    font-size: 26px;
+    font-weight: 900;
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .step-icon {
+    font-size: 46px;
+    flex-shrink: 0;
+    display: inline-block;
+    cursor: pointer;
+  }
+  .step-content { flex-grow: 1; }
+  .step-content h3 {
+    font-size: 20px;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 4px;
+  }
+  .step-content p {
+    font-size: 15px;
+    color: #475569;
+  }
+  .btn-step-mini-speak {
+    background: #fef08a;
+    border: 2px solid #eab308;
+    color: #713f12;
+    font-size: 14px;
+    font-weight: 800;
+    padding: 8px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: 0.1s;
+  }
+  .btn-step-mini-speak:hover { background: #fde047; }
+
+  .kamishibai-next-area {
+    text-align: center;
+    margin-top: 10px;
+    margin-bottom: 10px;
+  }
+  .btn-kamishibai-next {
+    background: #0284c7;
+    border: 4px solid #0369a1;
+    color: white;
+    font-size: 20px;
+    font-weight: 900;
+    padding: 14px 36px;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 0 6px 16px rgba(2, 132, 199, 0.35);
+    transition: 0.15s;
+  }
+  .btn-kamishibai-next:hover {
+    background: #0369a1;
+    transform: translateY(-2px);
+  }
+
+  .ballot-game-box {
+    margin-top: 14px;
+    background: #eff6ff;
+    border: 3px dashed #3b82f6;
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .draggable-paper {
+    background: white;
+    border: 3px solid #0284c7;
+    border-radius: 12px;
+    padding: 12px 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: grab;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.12);
+    touch-action: none;
+    position: relative;
+    z-index: 50;
+    transition: box-shadow 0.2s;
+  }
+  .draggable-paper:active {
+    cursor: grabbing;
+    box-shadow: 0 12px 24px rgba(2, 132, 199, 0.3);
+  }
+  .draggable-paper.inserted {
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.2) translateY(30px);
+    transition: all 0.4s ease;
+  }
+  .drop-target-box {
+    background: #dbeafe;
+    border: 4px solid #1d4ed8;
+    border-radius: 16px;
+    padding: 14px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 170px;
+    transition: 0.2s;
+  }
+  .drop-target-box.drag-over {
+    background: #fef08a;
+    border-color: #eab308;
+    transform: scale(1.08);
+    box-shadow: 0 0 20px rgba(234, 179, 8, 0.5);
+  }
+  @keyframes boxCelebrate {
+    0%, 100% { transform: scale(1); }
+    30% { transform: scale(1.15) rotate(-4deg); }
+    60% { transform: scale(1.15) rotate(4deg); }
+  }
+  .drop-target-box.celebrate {
+    background: #dcfce7;
+    border-color: #16a34a;
+    animation: boxCelebrate 0.6s ease;
+  }
+  .game-result-msg {
+    width: 100%;
+    text-align: center;
+    font-size: 18px;
+    font-weight: 900;
+    color: #15803d;
+    display: none;
+    margin-top: 4px;
+  }
+  .game-result-msg.show {
+    display: block;
+    animation: popInCard 0.4s ease;
+  }
+  .btn-reset-ballot {
+    background: #16a34a;
+    border: none;
+    color: white;
+    font-size: 14px;
+    font-weight: 800;
+    padding: 6px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    margin-left: 10px;
+  }
+
+  /* =========================================
+     4. ⚙️ せんせい用設定（Web編集機能）
+     ========================================= */
+  .admin-section {
+    user-select: text;
+  }
+  .admin-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    background: #f3e8ff;
+    border: 2px solid #c084fc;
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 20px;
+  }
+  .admin-btn-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .btn-admin {
+    border: none;
+    font-size: 14px;
+    font-weight: 800;
+    padding: 10px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-admin-add {
+    background: #0284c7;
+    color: white;
+  }
+  .btn-admin-add:hover { background: #0369a1; }
+  .btn-admin-export {
+    background: #16a34a;
+    color: white;
+  }
+  .btn-admin-export:hover { background: #15803d; }
+  .btn-admin-reset {
+    background: #e2e8f0;
+    color: #475569;
+  }
+  .btn-admin-reset:hover { background: #cbd5e1; }
+
+  .role-count-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+    padding: 16px;
+    background: #f8fafc;
+    border: 2px solid #cbd5e1;
+    border-radius: 14px;
+  }
+  .role-count-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: white;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid #cbd5e1;
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .role-count-item input {
+    width: 60px;
+    padding: 6px;
+    font-size: 16px;
+    font-weight: 800;
+    text-align: center;
+    border: 2px solid #94a3b8;
+    border-radius: 8px;
+  }
+
+  .admin-candidate-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .admin-cand-card {
+    background: #ffffff;
+    border: 2px solid #cbd5e1;
+    border-left: 8px solid #0284c7;
+    border-radius: 14px;
+    padding: 18px;
+    display: grid;
+    grid-template-columns: 140px 1fr auto;
+    gap: 18px;
+    align-items: start;
+  }
+  @media (max-width: 768px) {
+    .admin-cand-card {
+      grid-template-columns: 1fr;
+    }
+  }
+  .admin-photo-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .admin-photo-preview {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    border: 3px solid #cbd5e1;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8fafc;
+    font-size: 42px;
+  }
+  .admin-photo-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .file-upload-label {
+    background: #e0f2fe;
+    color: #0369a1;
+    border: 1px solid #7dd3fc;
+    font-size: 12px;
+    font-weight: 800;
+    padding: 6px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: center;
+    width: 100%;
+  }
+  .file-upload-label:hover { background: #bae6fd; }
+  .btn-clear-photo {
+    background: none;
+    border: none;
+    color: #dc2626;
+    font-size: 11px;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .admin-fields-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+  }
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .form-group.full-width {
+    grid-column: 1 / -1;
+  }
+  .form-group label {
+    font-size: 12px;
+    font-weight: 800;
+    color: #475569;
+  }
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    padding: 8px 10px;
+    font-size: 14px;
+    font-family: inherit;
+    border: 2px solid #cbd5e1;
+    border-radius: 8px;
+    background: #f8fafc;
+    color: #0f172a;
+  }
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: #0284c7;
+    background: white;
+  }
+  .btn-delete-cand {
+    background: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fca5a5;
+    font-size: 13px;
+    font-weight: 800;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .btn-delete-cand:hover { background: #fecaca; }
+
+  .save-toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #0f172a;
+    color: #4ade80;
+    font-weight: 800;
+    padding: 12px 20px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+    opacity: 0;
+    transform: translateY(20px);
+    transition: 0.25s;
+    pointer-events: none;
+    z-index: 9999;
+  }
+  .save-toast.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* 完了モーダル */
+  .modal-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(15, 23, 42, 0.85);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 20px;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal-box {
+    background: white;
+    border-radius: 24px;
+    border: 6px solid #10b981;
+    padding: 32px 24px;
+    text-align: center;
+    max-width: 480px;
+    width: 100%;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+  }
+  .modal-box h2 {
+    font-size: 28px;
+    color: #065f46;
+    margin-bottom: 12px;
+  }
+  .modal-box p {
+    font-size: 18px;
+    font-weight: 700;
+    color: #334155;
+    margin-bottom: 24px;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="confettiCanvas"></canvas>
+<div class="save-toast" id="saveToast">✅ へんこうを 自動ほぞん しました！</div>
+
+<header>
+  <div class="title-group">
+    <h1>
+      <ruby>生徒会<rt>せいとかい</rt></ruby>
+      <ruby>選挙<rt>せんきょ</rt></ruby> Webサポート
+    </h1>
+    <div class="title-sub">じぶんの いけんを えらんで とうひょうしてみよう！</div>
+  </div>
+  <div class="nav-tabs">
+    <button class="tab-btn active" onclick="switchTab('candidates')">👤 こうほしゃ</button>
+    <button class="tab-btn" onclick="switchTab('vote')">🗳️ とうひょう れんしゅう</button>
+    <button class="tab-btn" onclick="switchTab('guide')">📖 とうひょうの ながれ</button>
+    <button class="tab-btn admin-tab" onclick="switchTab('admin')">⚙️ へんしゅう</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- タブ1: 候補者紹介 -->
+  <section id="candidatesView" class="view-section active">
+    <div class="card">
+      <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 14px; color: #0f172a;">
+        <ruby>立候補者<rt>りっこうほしゃ</rt></ruby>の
+        <ruby>紹介<rt>しょうかい</rt></ruby>（きく ボタンを おすと おとが なります）
+      </h2>
+
+      <div class="filter-bar">
+        <span class="filter-label">役職でしぼりこむ:</span>
+        <button class="filter-btn active" onclick="filterRole('all', this)">すべて</button>
+        <button class="filter-btn" onclick="filterRole('会長候補', this)">会長</button>
+        <button class="filter-btn" onclick="filterRole('副会長候補', this)">副会長</button>
+        <button class="filter-btn" onclick="filterRole('書記候補', this)">書記</button>
+        <button class="filter-btn" onclick="filterRole('執行委員候補', this)">執行委員</button>
+      </div>
+
+      <div class="candidate-grid" id="candidateListArea"></div>
+    </div>
+  </section>
+
+  <!-- タブ2: 投票練習 -->
+  <section id="voteView" class="view-section">
+    <div class="card">
+      <div class="switch-guide-bar">
+        <div class="switch-guide-text">
+          💡 <strong>スイッチ操作モード:</strong> 「Space」キーか「Enter」キーを1回押すごとに、枠が順番に動いて選択できます。
+        </div>
+        <button class="btn-toggle-scan" id="btnToggleScan" onclick="toggleAutoScan()">
+          ▶️ 自動スキャンを開始 (2秒間隔)
+        </button>
+      </div>
+
+      <div class="vote-steps-bar" id="voteStepsBar"></div>
+
+      <h2 style="font-size: 22px; font-weight: 800; margin-bottom: 14px; text-align: center;" id="voteStepTitle">
+        とうひょうしたい <ruby>人<rt>ひと</rt></ruby>を えらんでください
+      </h2>
+
+      <div class="vote-grid" id="voteSelectionArea"></div>
+
+      <div class="vote-action-area">
+        <button class="btn-next-step" id="btnNextStep" disabled onclick="nextVoteStep()">
+          つぎへすすむ
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- タブ3: 投票の流れガイド -->
+  <section id="guideView" class="view-section">
+    <div class="card">
+      <div class="guide-header-bar">
+        <h2 style="font-size: 22px; font-weight: 800; color: #0f172a;">
+          <ruby>当日<rt>とうじつ</rt></ruby>の
+          <ruby>投票<rt>とうひょう</rt></ruby>の ながれ（4つのステップ）
+        </h2>
+        <div class="guide-controls">
+          <button class="btn-guide-audio" id="btnAutoGuide" onclick="toggleAutoGuide()">
+            🔊 音声ガイドで順番に見る
+          </button>
+          <button class="btn-guide-mode" id="btnToggleAllSteps" onclick="toggleShowAllSteps()">
+            👀 4つすべて表示する
+          </button>
+        </div>
+      </div>
+
+      <div class="flow-step-card visible-step" id="flow-step-1">
+        <div class="step-num">1</div>
+        <div class="step-icon">🪪</div>
+        <div class="step-content">
+          <h3>① うけつけ を する</h3>
+          <p>「生徒手帳（または入場券）」を係の人に見せて、名前を確認してもらいます。</p>
+        </div>
+        <button class="btn-step-mini-speak" onclick="speakSingleFlowStep(1)">🔊 きく</button>
+      </div>
+
+      <div class="flow-step-card hidden-step" id="flow-step-2">
+        <div class="step-num">2</div>
+        <div class="step-icon">📄</div>
+        <div class="step-content">
+          <h3>② とうひょうようし を もらう</h3>
+          <p>白い投票用紙を1枚受け取ります。大切に持って記入所へ進みます。</p>
+        </div>
+        <button class="btn-step-mini-speak" onclick="speakSingleFlowStep(2)">🔊 きく</button>
+      </div>
+
+      <div class="flow-step-card hidden-step" id="flow-step-3">
+        <div class="step-num">3</div>
+        <div class="step-icon">✏️</div>
+        <div class="step-content">
+          <h3>③ なまえを かく（または えらぶ）</h3>
+          <p>自分が応援したい候補者の名前を書きます（スタンプや記号選択の場合もあります）。</p>
+        </div>
+        <button class="btn-step-mini-speak" onclick="speakSingleFlowStep(3)">🔊 きく</button>
+      </div>
+
+      <div class="flow-step-card hidden-step" id="flow-step-4" style="flex-direction: column; align-items: stretch;">
+        <div style="display: flex; align-items: center; gap: 20px;">
+          <div class="step-num">4</div>
+          <div class="step-icon">🗳️</div>
+          <div class="step-content">
+            <h3>④ とうひょうばこ に いれる</h3>
+            <p>投票箱の上の細い穴に、用紙を落として入れます。下の用紙を箱に入れて試してみよう！</p>
+          </div>
+          <button class="btn-step-mini-speak" onclick="speakSingleFlowStep(4)">🔊 きく</button>
+        </div>
+
+        <div class="ballot-game-box" id="ballotGameBox">
+          <div class="draggable-paper" id="draggablePaper" title="投票箱までひっぱってね！">
+            <span style="font-size: 38px;">📄</span>
+            <span style="font-size: 14px; font-weight: 800; color: #0284c7;">とうひょうようし</span>
+            <span style="font-size: 11px; color: #64748b;">（ひっぱる か タップ）</span>
+          </div>
+
+          <div style="font-size: 26px; font-weight: 900; color: #3b82f6;">➡️</div>
+
+          <div class="drop-target-box" id="dropTargetBox">
+            <span style="font-size: 46px;">🗳️</span>
+            <span style="font-size: 15px; font-weight: 900; color: #1e3a8a;">とうひょうばこ</span>
+            <span style="font-size: 12px; color: #3b82f6;">ここに入れる！</span>
+          </div>
+
+          <div class="game-result-msg" id="gameResultMsg">
+            🎉 とうひょう せいこう！バッチリできたね！
+            <button class="btn-reset-ballot" onclick="resetBallotGame()">もういちど 試す</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="kamishibai-next-area" id="kamishibaiNextArea">
+        <button class="btn-kamishibai-next" id="btnKamishibaiNext" onclick="revealNextKamishibaiStep()">
+          👇 つぎの ステップを みる（2 / 4）
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- タブ4: せんせい用設定（Web編集画面） -->
+  <section id="adminView" class="view-section admin-section">
+    <div class="card">
+      <div class="admin-toolbar">
+        <div>
+          <h2 style="font-size: 20px; font-weight: 800; color: #581c87;">⚙️ 立候補者・選挙データの編集</h2>
+          <p style="font-size: 13px; color: #6b21a8;">入力内容は自動でこのブラウザに保存されます。他の端末で使うときは「HTMLを保存」を押してください。</p>
+        </div>
+        <div class="admin-btn-group">
+          <button class="btn-admin btn-admin-add" onclick="addNewCandidate()">➕ 立候補者を追加</button>
+          <button class="btn-admin btn-admin-export" onclick="exportUpdatedHtml()">💾 設定を反映したHTMLを保存</button>
+          <button class="btn-admin btn-admin-reset" onclick="resetToDefaultData()">🔄 初期データに戻す</button>
+        </div>
+      </div>
+
+      <h3 style="font-size: 16px; font-weight: 800; margin-bottom: 10px; color: #334155;">1. 役職ごとの選ぶ人数（当選人数）</h3>
+      <div class="role-count-grid" id="adminRoleCountArea"></div>
+
+      <h3 style="font-size: 16px; font-weight: 800; margin-bottom: 10px; color: #334155;">2. 立候補者リスト（名前・クラス・役職・コメント・写真）</h3>
+      <div class="admin-candidate-list" id="adminCandidateList"></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- 投票完了モーダル -->
+<div class="modal-overlay" id="doneModal">
+  <div class="modal-box">
+    <div style="font-size: 64px; margin-bottom: 10px;">🎉</div>
+    <h2>とうひょう かんりょう！</h2>
+    <p id="modalVotedCandidateText">すべての 役職の とうひょうが かんりょうしました。</p>
+    <button class="btn-next-step" style="font-size: 18px; padding: 12px 30px;" onclick="closeDoneModal()">
+      もういちど れんしゅうする
+    </button>
+  </div>
+</div>
+
+<script id="initial-data-script">
+// 初期データ定義（HTML書き出し時はここが自動更新されます）
+const DEFAULT_VOTE_STEPS = [
+  { role: "会長候補", title: "【1/4】 会長を 1人 えらんでください", maxSelect: 1 },
+  { role: "副会長候補", title: "【2/4】 副会長を 1人 えらんでください", maxSelect: 1 },
+  { role: "書記候補", title: "【3/4】 書記を 1人 えらんでください", maxSelect: 1 },
+  { role: "執行委員候補", title: "【4/4】 執行委員を 3人 えらんでください", maxSelect: 3 }
+];
+
+const DEFAULT_CANDIDATES = [
+  {
+    id: "c1",
+    name: "やまだ たろう",
+    schoolClass: "3-1",
+    role: "会長候補",
+    photo: "c1.jpg",
+    symbol: "🦁",
+    color: "#ea580c",
+    badgeBg: "#ea580c",
+    manifesto: "「みんなが 笑顔で あいさつできる、あかるい学校にします！」",
+    speechText: "やまだ たろう です。みんなが えがおで あいさつできる、あかるい がっこうにします！"
+  },
+  {
+    id: "c2",
+    name: "あおき そうた",
+    schoolClass: "3-2",
+    role: "会長候補",
+    photo: "c2.jpg",
+    symbol: "🦅",
+    color: "#0284c7",
+    badgeBg: "#0284c7",
+    manifesto: "「学校行事を 生徒みんなの意見で もっと面白く盛り上げます！」",
+    speechText: "あおき そうた です。がっこうぎょうじを、みんなのいけんで もっとおもしろくします！"
+  },
+  {
+    id: "c3",
+    name: "さとう はなこ",
+    schoolClass: "2-1",
+    role: "副会長候補",
+    photo: "c3.jpg",
+    symbol: "🌻",
+    color: "#ca8a04",
+    badgeBg: "#ca8a04",
+    manifesto: "「給食のリクエスト放送をふやして、楽しいお昼の時間をつくります！」",
+    speechText: "さとう はなこ です。きゅうしょくの リクエストほうそうを ふやして、たのしい おひるにします！"
+  },
+  {
+    id: "c4",
+    name: "いとう ゆうま",
+    schoolClass: "2-2",
+    role: "副会長候補",
+    photo: "c4.jpg",
+    symbol: "🐬",
+    color: "#0d9488",
+    badgeBg: "#0d9488",
+    manifesto: "「困ったことをすぐに相談できる、みんなの目安箱を置きます！」",
+    speechText: "いとう ゆうま です。こまったことを なんでも そうだんできる、めやすばこをつくります！"
+  },
+  {
+    id: "c5",
+    name: "たなか けんた",
+    schoolClass: "2-3",
+    role: "書記候補",
+    photo: "c5.jpg",
+    symbol: "📖",
+    color: "#2563eb",
+    badgeBg: "#2563eb",
+    manifesto: "「生徒会新聞に 写真をたくさんのせて、見やすく伝えます！」",
+    speechText: "たなか けんた です。せいとかいしんぶんに しゃしんを たくさんのせて、わかりやすくします！"
+  },
+  {
+    id: "c6",
+    name: "わたなべ みさき",
+    schoolClass: "1-1",
+    role: "書記候補",
+    photo: "c6.jpg",
+    symbol: "🌸",
+    color: "#db2777",
+    badgeBg: "#db2777",
+    manifesto: "「校内の掲示板を イラスト付きでカラフルに分かりやすくします！」",
+    speechText: "わたなべ みさき です。けいじばんを イラストつきで カラフルに みやすくします！"
+  },
+  {
+    id: "c7",
+    name: "こばやし りくと",
+    schoolClass: "1-2",
+    role: "執行委員候補",
+    photo: "c7.jpg",
+    symbol: "⚽",
+    color: "#16a34a",
+    badgeBg: "#16a34a",
+    manifesto: "「昼休みに 体育館や運動場で 遊べるスポーツ用具を増やします！」",
+    speechText: "こばやし りくと です。ひるやすみに あそべる ボールや ようぐを ふやします！"
+  },
+  {
+    id: "c8",
+    name: "加藤 ゆい",
+    schoolClass: "1-3",
+    role: "執行委員候補",
+    photo: "c8.jpg",
+    symbol: "🎨",
+    color: "#7c3aed",
+    badgeBg: "#7c3aed",
+    manifesto: "「季節のアート作品を 廊下に飾って、居心地のよい学校にします！」",
+    speechText: "かとう ゆい です。きせつの さくひんを かざって、すごしやすい がっこうにします！"
+  },
+  {
+    id: "c9",
+    name: "まつもと はるき",
+    schoolClass: "1-4",
+    role: "執行委員候補",
+    photo: "c9.jpg",
+    symbol: "🌱",
+    color: "#65a30d",
+    badgeBg: "#65a30d",
+    manifesto: "「花壇に季節の花をたくさん植えて、きれいな中庭をつくります！」",
+    speechText: "まつもと はるき です。かだんに きれいな おはなを たくさん うえます！"
+  }
+];
+</script>
+
+<script>
+const STORAGE_KEY_CANDIDATES = 'seitokai_senkyo_candidates_v1';
+const STORAGE_KEY_STEPS = 'seitokai_senkyo_steps_v1';
+
+const ROLE_COLOR_MAP = {
+  "会長候補": "#ea580c",
+  "副会長候補": "#0d9488",
+  "書記候補": "#2563eb",
+  "執行委員候補": "#16a34a"
+};
+
+let VOTE_STEPS = [];
+let CANDIDATES = [];
+
+function loadElectionData() {
+  try {
+    const savedSteps = localStorage.getItem(STORAGE_KEY_STEPS);
+    const savedCands = localStorage.getItem(STORAGE_KEY_CANDIDATES);
+    VOTE_STEPS = savedSteps ? JSON.parse(savedSteps) : JSON.parse(JSON.stringify(DEFAULT_VOTE_STEPS));
+    CANDIDATES = savedCands ? JSON.parse(savedCands) : JSON.parse(JSON.stringify(DEFAULT_CANDIDATES));
+  } catch (e) {
+    VOTE_STEPS = JSON.parse(JSON.stringify(DEFAULT_VOTE_STEPS));
+    CANDIDATES = JSON.parse(JSON.stringify(DEFAULT_CANDIDATES));
+  }
+}
+
+function saveElectionData() {
+  try {
+    localStorage.setItem(STORAGE_KEY_STEPS, JSON.stringify(VOTE_STEPS));
+    localStorage.setItem(STORAGE_KEY_CANDIDATES, JSON.stringify(CANDIDATES));
+    showSaveToast();
+  } catch (e) {
+    alert("画像の容量が大きすぎるためブラウザに保存できませんでした。小さめの画像をお試しください。");
+  }
+}
+
+let toastTimer = null;
+function showSaveToast() {
+  const toast = document.getElementById('saveToast');
+  toast.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+let currentFilter = 'all';
+let currentVoteStepIndex = 0;
+let userSelections = {};
+let scanIndex = -1;
+let scanTimer = null;
+let isAutoScanning = false;
+
+window.addEventListener('DOMContentLoaded', () => {
+  loadElectionData();
+  renderCandidates();
+  initVoteStep();
+  initBallotDragAndDrop();
+  renderAdminPanel();
+});
+
+function switchTab(tabKey) {
+  document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+
+  stopAutoScan();
+  stopAutoGuide();
+  window.speechSynthesis.cancel();
+
+  if (tabKey === 'candidates') {
+    renderCandidates();
+    document.getElementById('candidatesView').classList.add('active');
+    document.querySelectorAll('.tab-btn')[0].classList.add('active');
+  } else if (tabKey === 'vote') {
+    initVoteStep();
+    document.getElementById('voteView').classList.add('active');
+    document.querySelectorAll('.tab-btn')[1].classList.add('active');
+  } else if (tabKey === 'guide') {
+    document.getElementById('guideView').classList.add('active');
+    document.querySelectorAll('.tab-btn')[2].classList.add('active');
+  } else if (tabKey === 'admin') {
+    renderAdminPanel();
+    document.getElementById('adminView').classList.add('active');
+    document.querySelectorAll('.tab-btn')[3].classList.add('active');
+  }
+}
+
+// =========================================================================
+// ⚙️ 【4. せんせい用設定（Web上で編集・追加・写真アップロード・HTML書き出し）】
+// =========================================================================
+function renderAdminPanel() {
+  // 1. 役職ごとの人数設定
+  const roleCountArea = document.getElementById('adminRoleCountArea');
+  roleCountArea.innerHTML = '';
+  VOTE_STEPS.forEach((step, idx) => {
+    const div = document.createElement('div');
+    div.className = 'role-count-item';
+    div.innerHTML = `
+      <span>${step.role.replace('候補', '')}（選ぶ人数）</span>
+      <div>
+        <input type="number" min="1" max="10" value="${step.maxSelect}"
+          onchange="updateRoleMaxSelect(${idx}, this.value)"> 人
+      </div>
+    `;
+    roleCountArea.appendChild(div);
+  });
+
+  // 2. 立候補者リスト
+  const listArea = document.getElementById('adminCandidateList');
+  listArea.innerHTML = '';
+
+  CANDIDATES.forEach((c, idx) => {
+    const card = document.createElement('div');
+    card.className = 'admin-cand-card';
+    card.style.borderLeftColor = c.color || '#0284c7';
+
+    const photoPreviewHtml = c.photo
+      ? `<img src="${c.photo}" alt="${c.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"><span style="display:none;">${c.symbol || '😊'}</span>`
+      : `<span>${c.symbol || '😊'}</span>`;
+
+    card.innerHTML = `
+      <div class="admin-photo-box">
+        <div class="admin-photo-preview">${photoPreviewHtml}</div>
+        <label class="file-upload-label">
+          📷 写真を選ぶ
+          <input type="file" accept="image/*" style="display:none;" onchange="handlePhotoUpload(${idx}, this)">
+        </label>
+        ${c.photo ? `<button class="btn-clear-photo" onclick="clearCandidatePhoto(${idx})">写真を消す(絵文字にする)</button>` : ''}
+      </div>
+
+      <div class="admin-fields-grid">
+        <div class="form-group">
+          <label>生徒名（ひらがな・漢字）</label>
+          <input type="text" value="${escapeHtml(c.name)}" onchange="updateCandidateField(${idx}, 'name', this.value)">
+        </div>
+
+        <div class="form-group">
+          <label>クラス（例: 3-1）</label>
+          <input type="text" value="${escapeHtml(c.schoolClass)}" onchange="updateCandidateField(${idx}, 'schoolClass', this.value)">
+        </div>
+
+        <div class="form-group">
+          <label>立候補する役職</label>
+          <select onchange="updateCandidateRole(${idx}, this.value)">
+            <option value="会長候補" ${c.role === '会長候補' ? 'selected' : ''}>会長候補</option>
+            <option value="副会長候補" ${c.role === '副会長候補' ? 'selected' : ''}>副会長候補</option>
+            <option value="書記候補" ${c.role === '書記候補' ? 'selected' : ''}>書記候補</option>
+            <option value="執行委員候補" ${c.role === '執行委員候補' ? 'selected' : ''}>執行委員候補</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>絵文字マーク（写真がない時用）</label>
+          <input type="text" value="${escapeHtml(c.symbol)}" onchange="updateCandidateField(${idx}, 'symbol', this.value)">
+        </div>
+
+        <div class="form-group full-width">
+          <label>コメント・公約（画面に表示される文章）</label>
+          <textarea rows="2" onchange="updateCandidateManifesto(${idx}, this.value)">${escapeHtml(c.manifesto)}</textarea>
+        </div>
+
+        <div class="form-group full-width">
+          <label>🔊 音声読み上げ用テキスト（ひらがな多めだと自然に読み上げます）</label>
+          <input type="text" value="${escapeHtml(c.speechText)}" onchange="updateCandidateField(${idx}, 'speechText', this.value)">
+        </div>
+      </div>
+
+      <div>
+        <button class="btn-delete-cand" onclick="deleteCandidate(${idx})">🗑️ 削除</button>
+      </div>
+    `;
+    listArea.appendChild(card);
+  });
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function updateRoleMaxSelect(stepIdx, val) {
+  const num = Math.max(1, Math.min(10, parseInt(val, 10) || 1));
+  VOTE_STEPS[stepIdx].maxSelect = num;
+  const roleShort = VOTE_STEPS[stepIdx].role.replace('候補', '');
+  VOTE_STEPS[stepIdx].title = `【${stepIdx + 1}/${VOTE_STEPS.length}】 ${roleShort}を ${num}人 えらんでください`;
+  saveElectionData();
+}
+
+function updateCandidateField(idx, field, value) {
+  CANDIDATES[idx][field] = value;
+  saveElectionData();
+}
+
+function updateCandidateRole(idx, newRole) {
+  CANDIDATES[idx].role = newRole;
+  const color = ROLE_COLOR_MAP[newRole] || "#0284c7";
+  CANDIDATES[idx].color = color;
+  CANDIDATES[idx].badgeBg = color;
+  saveElectionData();
+  renderAdminPanel();
+}
+
+function updateCandidateManifesto(idx, value) {
+  CANDIDATES[idx].manifesto = value;
+  // 音声テキストが空または初期状態に近い場合は自動同期のヒントにする
+  if (!CANDIDATES[idx].speechText) {
+    CANDIDATES[idx].speechText = `${CANDIDATES[idx].name} です。${value}`;
+  }
+  saveElectionData();
+}
+
+function clearCandidatePhoto(idx) {
+  CANDIDATES[idx].photo = "";
+  saveElectionData();
+  renderAdminPanel();
+}
+
+// 画像をリサイズ＆圧縮してDataURL化（localStorage容量対策＆HTML単体保存対応）
+function handlePhotoUpload(idx, input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      const maxSize = 240;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height) {
+        if (width > maxSize) {
+          height *= maxSize / width;
+          width = maxSize;
+        }
+      } else {
+        if (height > maxSize) {
+          width *= maxSize / height;
+          height = maxSize;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      CANDIDATES[idx].photo = canvas.toDataURL('image/jpeg', 0.8);
+      saveElectionData();
+      renderAdminPanel();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function addNewCandidate() {
+  const newId = 'c_' + Date.now();
+  const icons = ["🌟", "🍀", "🚀", "🌈", "🎵", "🐻", "🦊", "🐼"];
+  const randomIcon = icons[CANDIDATES.length % icons.length];
+
+  CANDIDATES.push({
+    id: newId,
+    name: "あたらしい こうほしゃ",
+    schoolClass: "1-1",
+    role: "執行委員候補",
+    photo: "",
+    symbol: randomIcon,
+    color: "#16a34a",
+    badgeBg: "#16a34a",
+    manifesto: "「みんなが楽しくすごせる学校にします！」",
+    speechText: "あたらしい こうほしゃ です。みんなが たのしく すごせる がっこうに します！"
+  });
+  saveElectionData();
+  renderAdminPanel();
+}
+
+function deleteCandidate(idx) {
+  if (CANDIDATES.length <= 1) {
+    alert("立候補者は最低1人必要です。");
+    return;
+  }
+  const targetName = CANDIDATES[idx].name;
+  if (confirm(`「${targetName}」さんをリストから削除しますか？`)) {
+    CANDIDATES.splice(idx, 1);
+    saveElectionData();
+    renderAdminPanel();
+  }
+}
+
+function resetToDefaultData() {
+  if (confirm("編集した内容をすべて消去し、最初のサンプルデータに戻しますか？")) {
+    localStorage.removeItem(STORAGE_KEY_STEPS);
+    localStorage.removeItem(STORAGE_KEY_CANDIDATES);
+    loadElectionData();
+    renderAdminPanel();
+    renderCandidates();
+    initVoteStep();
+    showSaveToast();
+  }
+}
+
+// 現在の編集内容や写真を埋め込んだ新しいHTMLファイルをダウンロード
+function exportUpdatedHtml() {
+  // 一旦現在のタブ状態などをリセットしたクリーンなDOMクローンを作成
+  const docClone = document.documentElement.cloneNode(true);
+
+  // 初期データスクリプト部分を現在のデータで書き換える
+  const dataScript = docClone.querySelector('#initial-data-script');
+  if (dataScript) {
+    dataScript.textContent = `
+const DEFAULT_VOTE_STEPS = ${JSON.stringify(VOTE_STEPS, null, 2)};
+
+const DEFAULT_CANDIDATES = ${JSON.stringify(CANDIDATES, null, 2)};
+`;
+  }
+
+  // クローン内の動的生成エリアを初期化状態に戻す
+  const candArea = docClone.querySelector('#candidateListArea');
+  if (candArea) candArea.innerHTML = '';
+  const adminArea = docClone.querySelector('#adminCandidateList');
+  if (adminArea) adminArea.innerHTML = '';
+  const roleArea = docClone.querySelector('#adminRoleCountArea');
+  if (roleArea) roleArea.innerHTML = '';
+
+  // タブのアクティブ状態を最初のタブ（こうほしゃ）に戻す
+  docClone.querySelectorAll('.view-section').forEach((sec, i) => {
+    sec.classList.toggle('active', i === 0);
+  });
+  docClone.querySelectorAll('.tab-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', i === 0);
+  });
+
+  const htmlContent = "<!DOCTYPE html>\n" + docClone.outerHTML;
+  const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'seitokai_senkyo_custom.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// =========================================================================
+// 1. 候補者表示・フィルター
+// =========================================================================
+function filterRole(role, btn) {
+  currentFilter = role;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCandidates();
+}
+
+function createPhotoHtml(c, frameClass) {
+  if (c.photo) {
+    return `
+      <div class="${frameClass}" style="color: ${c.color}; border-color: ${c.color};">
+        <img src="${c.photo}" alt="${escapeHtml(c.name)}の写真" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+        <span class="fallback-symbol" style="display: none;">${escapeHtml(c.symbol)}</span>
+      </div>
+    `;
+  } else {
+    return `
+      <div class="${frameClass}" style="color: ${c.color}; border-color: ${c.color};">
+        <span class="fallback-symbol">${escapeHtml(c.symbol)}</span>
+      </div>
+    `;
+  }
+}
+
+function renderCandidates() {
+  const container = document.getElementById('candidateListArea');
+  container.innerHTML = '';
+
+  const filtered = CANDIDATES.filter(c => {
+    return currentFilter === 'all' || c.role === currentFilter;
+  });
+
+  filtered.forEach(c => {
+    const card = document.createElement('div');
+    card.className = 'candidate-card';
+    card.style.borderColor = c.color;
+
+    card.innerHTML = `
+      <div class="candidate-left">
+        ${createPhotoHtml(c, 'candidate-photo-frame')}
+        <div class="candidate-class">${escapeHtml(c.schoolClass)}</div>
+        <div class="candidate-name">${escapeHtml(c.name)}</div>
+        <span class="candidate-tag" style="background: ${c.badgeBg};">${escapeHtml(c.role)}</span>
+      </div>
+      <div class="candidate-right">
+        <div class="manifesto-box">${escapeHtml(c.manifesto)}</div>
+        <button class="btn-speech" onclick="speakCandidate('${c.id}')">
+          🔊 こえを きく
+        </button>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function speakCandidate(candidateId) {
+  const c = CANDIDATES.find(item => item.id === candidateId);
+  if (!c) return;
+
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(c.speechText || `${c.name} です。${c.manifesto}`);
+  utter.lang = 'ja-JP';
+  utter.rate = 0.9;
+  window.speechSynthesis.speak(utter);
+}
+
+// =========================================================================
+// 2. 投票練習
+// =========================================================================
+function initVoteStep() {
+  currentVoteStepIndex = 0;
+  userSelections = {};
+  // 候補者が0人の役職ステップは自動でスキップする
+  while (
+    currentVoteStepIndex < VOTE_STEPS.length &&
+    CANDIDATES.filter(c => c.role === VOTE_STEPS[currentVoteStepIndex].role).length === 0
+  ) {
+    currentVoteStepIndex++;
+  }
+  renderVoteStep();
+}
+
+function renderVoteStep() {
+  if (currentVoteStepIndex >= VOTE_STEPS.length) {
+    document.getElementById('voteStepTitle').textContent = "候補者が登録されていません";
+    document.getElementById('voteSelectionArea').innerHTML = '';
+    return;
+  }
+
+  const stepInfo = VOTE_STEPS[currentVoteStepIndex];
+  const barContainer = document.getElementById('voteStepsBar');
+  barContainer.innerHTML = '';
+  VOTE_STEPS.forEach((step, idx) => {
+    const hasCands = CANDIDATES.some(c => c.role === step.role);
+    if (!hasCands) return;
+
+    const indicator = document.createElement('div');
+    indicator.className = 'vote-step-indicator';
+    if (idx === currentVoteStepIndex) indicator.classList.add('active');
+    else if (idx < currentVoteStepIndex) indicator.classList.add('done');
+
+    indicator.textContent = step.role.replace('候補', '');
+    barContainer.appendChild(indicator);
+  });
+
+  const currentCandidates = CANDIDATES.filter(c => c.role === stepInfo.role);
+  const effectiveMax = Math.min(stepInfo.maxSelect, currentCandidates.length);
+  const roleShort = stepInfo.role.replace('候補', '');
+  document.getElementById('voteStepTitle').textContent = `${roleShort}を ${effectiveMax}人 えらんでください`;
+
+  const container = document.getElementById('voteSelectionArea');
+  container.innerHTML = '';
+
+  currentCandidates.forEach((c, idx) => {
+    const card = document.createElement('div');
+    card.className = 'vote-card';
+    card.id = `vote-card-${idx}`;
+    card.onclick = () => toggleVoteCandidate(c.id, idx);
+
+    const selectedList = userSelections[stepInfo.role] || [];
+    if (selectedList.includes(c.id)) {
+      card.classList.add('selected');
+    }
+
+    card.innerHTML = `
+      ${createPhotoHtml(c, 'vote-photo-frame')}
+      <div style="font-size: 13px; font-weight: 700; color: #475569; margin-bottom: 2px;">${escapeHtml(c.schoolClass)}</div>
+      <div style="font-size: 20px; font-weight: 800; color: #0f172a; margin-bottom: 2px;">${escapeHtml(c.name)}</div>
+      <div style="font-size: 13px; font-weight: 700; color: ${c.color};">${escapeHtml(c.role)}</div>
+    `;
+    container.appendChild(card);
+  });
+
+  updateNextButtonState();
+  scanIndex = -1;
+  if (isAutoScanning) stopAutoScan();
+}
+
+function toggleVoteCandidate(id, idx) {
+  const stepInfo = VOTE_STEPS[currentVoteStepIndex];
+  const currentCandidates = CANDIDATES.filter(c => c.role === stepInfo.role);
+  const effectiveMax = Math.min(stepInfo.maxSelect, currentCandidates.length);
+
+  if (!userSelections[stepInfo.role]) {
+    userSelections[stepInfo.role] = [];
+  }
+
+  let selectedList = userSelections[stepInfo.role];
+  const cardElement = document.getElementById(`vote-card-${idx}`);
+
+  if (selectedList.includes(id)) {
+    userSelections[stepInfo.role] = selectedList.filter(item => item !== id);
+    cardElement.classList.remove('selected');
+  } else {
+    if (selectedList.length < effectiveMax) {
+      selectedList.push(id);
+      cardElement.classList.add('selected');
+    } else if (effectiveMax === 1) {
+      document.querySelectorAll('.vote-card').forEach(c => c.classList.remove('selected'));
+      userSelections[stepInfo.role] = [id];
+      cardElement.classList.add('selected');
+    }
+  }
+
+  updateNextButtonState();
+
+  const c = CANDIDATES.find(item => item.id === id);
+  if (c) {
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(`${c.name} さん`);
+    utter.lang = 'ja-JP';
+    window.speechSynthesis.speak(utter);
+  }
+}
+
+function updateNextButtonState() {
+  const stepInfo = VOTE_STEPS[currentVoteStepIndex];
+  const currentCandidates = CANDIDATES.filter(c => c.role === stepInfo.role);
+  const effectiveMax = Math.min(stepInfo.maxSelect, currentCandidates.length);
+  const selectedList = userSelections[stepInfo.role] || [];
+  const btn = document.getElementById('btnNextStep');
+
+  // 次の有効なステップがあるか確認
+  let hasMoreSteps = false;
+  for (let i = currentVoteStepIndex + 1; i < VOTE_STEPS.length; i++) {
+    if (CANDIDATES.some(c => c.role === VOTE_STEPS[i].role)) {
+      hasMoreSteps = true;
+      break;
+    }
+  }
+
+  if (selectedList.length === effectiveMax) {
+    btn.disabled = false;
+    btn.textContent = !hasMoreSteps ? "投票完了！" : "つぎの役職へすすむ";
+  } else {
+    btn.disabled = true;
+    btn.textContent = `あと ${effectiveMax - selectedList.length}人 えらんでください`;
+  }
+}
+
+function nextVoteStep() {
+  const stepInfo = VOTE_STEPS[currentVoteStepIndex];
+  const currentCandidates = CANDIDATES.filter(c => c.role === stepInfo.role);
+  const effectiveMax = Math.min(stepInfo.maxSelect, currentCandidates.length);
+  const selectedList = userSelections[stepInfo.role] || [];
+  if (selectedList.length !== effectiveMax) return;
+
+  currentVoteStepIndex++;
+  while (
+    currentVoteStepIndex < VOTE_STEPS.length &&
+    CANDIDATES.filter(c => c.role === VOTE_STEPS[currentVoteStepIndex].role).length === 0
+  ) {
+    currentVoteStepIndex++;
+  }
+
+  if (currentVoteStepIndex < VOTE_STEPS.length) {
+    renderVoteStep();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } else {
+    document.getElementById('doneModal').classList.add('active');
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance("すべての役職の投票が完了しました。お疲れ様でした！");
+    utter.lang = 'ja-JP';
+    window.speechSynthesis.speak(utter);
+  }
+}
+
+function closeDoneModal() {
+  document.getElementById('doneModal').classList.remove('active');
+  initVoteStep();
+  switchTab('candidates');
+}
+
+function toggleAutoScan() {
+  if (isAutoScanning) {
+    stopAutoScan();
+  } else {
+    startAutoScan();
+  }
+}
+
+function startAutoScan() {
+  isAutoScanning = true;
+  const btn = document.getElementById('btnToggleScan');
+  btn.textContent = "⏹️ スキャン停止";
+  btn.classList.add('active');
+  scanIndex = -1;
+
+  stepScan();
+  scanTimer = setInterval(stepScan, 2000);
+}
+
+function stopAutoScan() {
+  isAutoScanning = false;
+  if (scanTimer) clearInterval(scanTimer);
+  const btn = document.getElementById('btnToggleScan');
+  if (btn) {
+    btn.textContent = "▶️ 自動スキャンを開始 (2秒間隔)";
+    btn.classList.remove('active');
+  }
+  document.querySelectorAll('.vote-card').forEach(c => c.classList.remove('scanning-focus'));
+}
+
+function stepScan() {
+  const cards = document.querySelectorAll('.vote-card');
+  if (cards.length === 0) return;
+
+  cards.forEach(c => c.classList.remove('scanning-focus'));
+
+  scanIndex = (scanIndex + 1) % cards.length;
+  const currentCard = cards[scanIndex];
+  currentCard.classList.add('scanning-focus');
+  currentCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  const stepInfo = VOTE_STEPS[currentVoteStepIndex];
+  const currentCandidates = CANDIDATES.filter(c => c.role === stepInfo.role);
+  const c = currentCandidates[scanIndex];
+
+  if (c) {
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(c.name);
+    utter.lang = 'ja-JP';
+    window.speechSynthesis.speak(utter);
+  }
+}
+
+window.addEventListener('keydown', (e) => {
+  const voteView = document.getElementById('voteView');
+  if (!voteView.classList.contains('active')) return;
+
+  if (e.code === 'Space' || e.code === 'Enter') {
+    e.preventDefault();
+
+    const stepInfo = VOTE_STEPS[currentVoteStepIndex];
+    const currentCandidates = CANDIDATES.filter(c => c.role === stepInfo.role);
+
+    if (isAutoScanning && scanIndex >= 0 && scanIndex < currentCandidates.length) {
+      toggleVoteCandidate(currentCandidates[scanIndex].id, scanIndex);
+      stopAutoScan();
+    } else {
+      const cards = document.querySelectorAll('.vote-card');
+      if (cards.length > 0) {
+        scanIndex = (scanIndex + 1) % cards.length;
+        toggleVoteCandidate(currentCandidates[scanIndex].id, scanIndex);
+      }
+    }
+  }
+});
+
+// =========================================================================
+// 3. とうひょうのながれ：紙芝居・音声ガイド・投票箱体験ギミック
+// =========================================================================
+const FLOW_SPEECH_TEXTS = {
+  1: "ステップ1、うけつけをする。生徒手帳を係の人に見せて、名前を確認してもらいます。",
+  2: "ステップ2、とうひょうようしをもらう。白い投票用紙を1枚受け取ります。大切に持って記入所へ進みます。",
+  3: "ステップ3、なまえをかく、またはえらぶ。自分が応援したい候補者の名前を書きます。",
+  4: "ステップ4、とうひょうばこにいれる。投票箱の上の細い穴に、用紙を落として入れます。これで完了です！"
+};
+
+let revealedStepCount = 1;
+let isAllStepsShown = false;
+let isAutoGuidePlaying = false;
+let autoGuideFallbackTimer = null;
+
+function revealNextKamishibaiStep() {
+  if (revealedStepCount < 4) {
+    revealedStepCount++;
+    const nextCard = document.getElementById(`flow-step-${revealedStepCount}`);
+    nextCard.classList.remove('hidden-step');
+    nextCard.classList.add('visible-step');
+    nextCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    speakSingleFlowStep(revealedStepCount);
+    updateKamishibaiButton();
+  }
+}
+
+function updateKamishibaiButton() {
+  const area = document.getElementById('kamishibaiNextArea');
+  const btn = document.getElementById('btnKamishibaiNext');
+  const toggleBtn = document.getElementById('btnToggleAllSteps');
+
+  if (revealedStepCount >= 4 || isAllStepsShown) {
+    area.style.display = 'none';
+    isAllStepsShown = true;
+    toggleBtn.textContent = "📖 1枚ずつに戻す";
+  } else {
+    area.style.display = 'block';
+    btn.textContent = `👇 つぎの ステップを みる（${revealedStepCount + 1} / 4）`;
+    toggleBtn.textContent = "👀 4つすべて表示する";
+  }
+}
+
+function toggleShowAllSteps() {
+  stopAutoGuide();
+  if (!isAllStepsShown) {
+    isAllStepsShown = true;
+    revealedStepCount = 4;
+    for (let i = 1; i <= 4; i++) {
+      const card = document.getElementById(`flow-step-${i}`);
+      card.classList.remove('hidden-step');
+      card.classList.add('visible-step');
+    }
+  } else {
+    isAllStepsShown = false;
+    revealedStepCount = 1;
+    for (let i = 1; i <= 4; i++) {
+      const card = document.getElementById(`flow-step-${i}`);
+      if (i === 1) {
+        card.classList.remove('hidden-step');
+        card.classList.add('visible-step');
+      } else {
+        card.classList.remove('visible-step');
+        card.classList.add('hidden-step');
+      }
+    }
+  }
+  updateKamishibaiButton();
+}
+
+function speakSingleFlowStep(stepNum, onFinishedCallback = null) {
+  window.speechSynthesis.cancel();
+  if (autoGuideFallbackTimer) clearTimeout(autoGuideFallbackTimer);
+
+  document.querySelectorAll('.flow-step-card').forEach(c => c.classList.remove('speaking-highlight'));
+  const targetCard = document.getElementById(`flow-step-${stepNum}`);
+  if (targetCard) {
+    targetCard.classList.add('speaking-highlight');
+    targetCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  const text = FLOW_SPEECH_TEXTS[stepNum];
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'ja-JP';
+  utter.rate = 0.92;
+
+  let finished = false;
+  const finishHandler = () => {
+    if (finished) return;
+    finished = true;
+    if (autoGuideFallbackTimer) clearTimeout(autoGuideFallbackTimer);
+    if (targetCard) targetCard.classList.remove('speaking-highlight');
+    if (onFinishedCallback) onFinishedCallback();
+  };
+
+  utter.onend = finishHandler;
+  utter.onerror = finishHandler;
+  window.speechSynthesis.speak(utter);
+
+  autoGuideFallbackTimer = setTimeout(finishHandler, Math.max(4500, text.length * 170));
+}
+
+function toggleAutoGuide() {
+  if (isAutoGuidePlaying) {
+    stopAutoGuide();
+  } else {
+    startAutoGuide();
+  }
+}
+
+function startAutoGuide() {
+  isAutoGuidePlaying = true;
+  const btn = document.getElementById('btnAutoGuide');
+  btn.textContent = "⏹️ 音声ガイドをとめる";
+  btn.classList.add('playing');
+
+  isAllStepsShown = false;
+  revealedStepCount = 1;
+  for (let i = 1; i <= 4; i++) {
+    const card = document.getElementById(`flow-step-${i}`);
+    if (i === 1) {
+      card.classList.remove('hidden-step');
+      card.classList.add('visible-step');
+    } else {
+      card.classList.remove('visible-step');
+      card.classList.add('hidden-step');
+    }
+  }
+  updateKamishibaiButton();
+  playGuideSequence(1);
+}
+
+function playGuideSequence(stepNum) {
+  if (!isAutoGuidePlaying) return;
+
+  if (stepNum > 4) {
+    stopAutoGuide();
+    return;
+  }
+
+  revealedStepCount = Math.max(revealedStepCount, stepNum);
+  const card = document.getElementById(`flow-step-${stepNum}`);
+  if (card.classList.contains('hidden-step')) {
+    card.classList.remove('hidden-step');
+    card.classList.add('visible-step');
+  }
+  updateKamishibaiButton();
+
+  speakSingleFlowStep(stepNum, () => {
+    if (isAutoGuidePlaying) {
+      setTimeout(() => playGuideSequence(stepNum + 1), 400);
+    }
+  });
+}
+
+function stopAutoGuide() {
+  isAutoGuidePlaying = false;
+  if (autoGuideFallbackTimer) clearTimeout(autoGuideFallbackTimer);
+  window.speechSynthesis.cancel();
+  document.querySelectorAll('.flow-step-card').forEach(c => c.classList.remove('speaking-highlight'));
+  const btn = document.getElementById('btnAutoGuide');
+  if (btn) {
+    btn.textContent = "🔊 音声ガイドで順番に見る";
+    btn.classList.remove('playing');
+  }
+}
+
+// =========================================================================
+// 投票用紙のドラッグ＆ドロップ体験
+// =========================================================================
+function initBallotDragAndDrop() {
+  const paper = document.getElementById('draggablePaper');
+  const box = document.getElementById('dropTargetBox');
+  let isDragging = false;
+  let startX = 0, startY = 0;
+  let currentX = 0, currentY = 0;
+
+  paper.addEventListener('pointerdown', (e) => {
+    if (paper.classList.contains('inserted')) return;
+    isDragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    currentX = 0;
+    currentY = 0;
+    paper.style.transition = 'none';
+    paper.setPointerCapture(e.pointerId);
+  });
+
+  paper.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+    currentX = e.clientX - startX;
+    currentY = e.clientY - startY;
+    paper.style.transform = `translate(${currentX}px, ${currentY}px) rotate(${currentX * 0.05}deg) scale(1.06)`;
+
+    const paperRect = paper.getBoundingClientRect();
+    const boxRect = box.getBoundingClientRect();
+    const isOver = !(
+      paperRect.right < boxRect.left ||
+      paperRect.left > boxRect.right ||
+      paperRect.bottom < boxRect.top ||
+      paperRect.top > boxRect.bottom
+    );
+
+    if (isOver) {
+      box.classList.add('drag-over');
+    } else {
+      box.classList.remove('drag-over');
+    }
+  });
+
+  paper.addEventListener('pointerup', (e) => {
+    if (!isDragging) return;
+    isDragging = false;
+    paper.releasePointerCapture(e.pointerId);
+    box.classList.remove('drag-over');
+
+    const movedDistance = Math.hypot(currentX, currentY);
+    const paperRect = paper.getBoundingClientRect();
+    const boxRect = box.getBoundingClientRect();
+    const isOver = !(
+      paperRect.right < boxRect.left ||
+      paperRect.left > boxRect.right ||
+      paperRect.bottom < boxRect.top ||
+      paperRect.top > boxRect.bottom
+    );
+
+    if (isOver || movedDistance < 10) {
+      completeBallotDrop();
+    } else {
+      paper.style.transition = 'transform 0.3s cubic-bezier(0.22, 1, 0.36, 1)';
+      paper.style.transform = 'translate(0px, 0px)';
+    }
+  });
+}
+
+function completeBallotDrop() {
+  const paper = document.getElementById('draggablePaper');
+  const box = document.getElementById('dropTargetBox');
+  const msg = document.getElementById('gameResultMsg');
+
+  paper.style.transition = 'all 0.4s ease';
+  paper.classList.add('inserted');
+
+  box.classList.add('celebrate');
+  setTimeout(() => box.classList.remove('celebrate'), 700);
+
+  msg.classList.add('show');
+
+  playSuccessChime();
+  launchConfetti();
+
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance("とうひょうばこに いれました！バッチリできたね！");
+  utter.lang = 'ja-JP';
+  window.speechSynthesis.speak(utter);
+}
+
+function resetBallotGame() {
+  const paper = document.getElementById('draggablePaper');
+  const msg = document.getElementById('gameResultMsg');
+
+  paper.classList.remove('inserted');
+  paper.style.transition = 'none';
+  paper.style.transform = 'translate(0px, 0px)';
+  msg.classList.remove('show');
+}
+
+function playSuccessChime() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    const ctx = new AudioCtx();
+    const notes = [523.25, 659.25, 783.99, 1046.50];
+    notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.09);
+      gain.gain.setValueAtTime(0.18, ctx.currentTime + idx * 0.09);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.09 + 0.35);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + idx * 0.09);
+      osc.stop(ctx.currentTime + idx * 0.09 + 0.35);
+    });
+  } catch (e) {}
+}
+
+function launchConfetti() {
+  const canvas = document.getElementById('confettiCanvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const colors = ['#facc15', '#38bdf8', '#f472b6', '#4ade80', '#fb923c', '#a78bfa'];
+  const pieces = [];
+  for (let i = 0; i < 90; i++) {
+    pieces.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height - canvas.height,
+      w: Math.random() * 10 + 6,
+      h: Math.random() * 6 + 4,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      vx: (Math.random() - 0.5) * 4,
+      vy: Math.random() * 4 + 3,
+      angle: Math.random() * Math.PI * 2,
+      vAngle: (Math.random() - 0.5) * 0.2
+    });
+  }
+
+  let frame = 0;
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    pieces.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.angle += p.vAngle;
+
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.angle);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
+    });
+
+    frame++;
+    if (frame < 140) {
+      requestAnimationFrame(animate);
+    } else {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  }
+  animate();
+}
+</script>
+</body>
+</html>
